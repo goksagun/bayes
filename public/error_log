@@ -1,0 +1,2 @@
+[06-Jan-2015 09:17:14 UTC] PHP Fatal error:  Class 'Factory' not found in /home/burakbol/public_html/bayes/app/controllers/ReviewController.php on line 81
+[06-Jan-2015 09:17:30 UTC] PHP Fatal error:  Class 'Factory' not found in /home/burakbol/public_html/bayes/app/controllers/ReviewController.php on line 81
