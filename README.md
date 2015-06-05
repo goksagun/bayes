@@ -1,0 +1,2 @@
+# bayes
+Simple Bayes Classifier
