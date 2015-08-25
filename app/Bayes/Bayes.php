@@ -8,16 +8,21 @@ use Input;
 
 /**
  * Class Bayes
+ * 
  * @package Bayes
  */
 class Bayes implements BayesInterface {
 
     /**
+     * Maximum data store.
+     * 
      * @var int
      */
     protected $maxInsert = 1000;
 
     /**
+     * Train method excepts any text.
+     * 
      * @param $text
      * @param $tag
      * @return string
@@ -37,6 +42,8 @@ class Bayes implements BayesInterface {
     }
 
     /**
+     * Retrain existing text in database reviews.
+     * 
      * @param $id
      * @param $text
      * @param $tag
@@ -60,6 +67,8 @@ class Bayes implements BayesInterface {
     }
 
     /**
+     * Rollback the training a review. This method deletes the review from database.
+     * 
      * @param $id
      * @return string
      * @throws Exception
@@ -76,6 +85,8 @@ class Bayes implements BayesInterface {
     }
 
     /**
+     * For multi review training.
+     * 
      * @param $data
      * @return mixed
      */
@@ -108,6 +119,43 @@ class Bayes implements BayesInterface {
     }
 
     /**
+     * Many natural language processing tasks require classification, you want to find out to which class 
+     * a particular instance belongs. To make this more concrete, we give three examples:
+     *
+     * - Authorship attribution: suppose that you were given a text, and have to pick the correct author of 
+     * the text from three proposed authors. 
+     * 
+     * - Part of speech tagging: in part of speech tagging, words are 
+     * classified morphosyntactically. For instance, we could classify the word 'loves' in the statement 
+     * "John loves Mary" to be a verb. 
+     * 
+     * - Fluency ranking: in natural language generation, we want to find 
+     * out whether a sentence produced by a generation system is fluent or not fluent.
+     *
+     * If we know the expected value from the observation of repeated coin flips (the training data), 
+     * we can make a model that gives the same outcome. If we know the payments, finding the model 
+     * analytically is trivial. What if we do the same for features? We can calculate the feature 
+     * value in the training data:
+     *
+     * 1- Calculating the empirical value of a feature
+     * E p̃ [ f i ] = ∑ x,y p̃(x,y) fi (x,y)
+     *
+     * It's easier than it looks: the empirical value of a feature fi is the sum of the multiplication 
+     * joint probability of a context and an event in the training data and the value of fi for that 
+     * context and event. We can also calculate the expected value of a feature fi according to the 
+     * conditional model p(y|x):
+     * 
+     * 2- Calculating the expected value of a feature
+     * E p [ f i ] = ∑ x,y p̃(x) p(y|x) fi (x,y)
+     *
+     * Since p(x,y) ≡ p(x) p(y|x) , and the model only estimates the conditional probability p(y|x), 
+     * the probability of the context in the training data, p̃(x) , is used. To make the model predict 
+     * the training data, a constraint is added for each feature fi during the training of the model, 
+     * such that:
+     * 
+     * 3- Constraining the expected value to the empirical value:
+     * E p̃ [ f i ] = E p [ f i ]
+     * 
      * @param $text
      * @return string
      */
@@ -171,6 +219,10 @@ class Bayes implements BayesInterface {
     }
 
     /**
+     * An N-gram is an N-character slice of a longer string. Although in the literature the term can include 
+     * the notion of any co-occurring set of characters in a string (e.g., an N-gram made up of the first and 
+     * third character of a word), in this paper we use the term for contiguous slices only.
+     * 
      * @param $text
      * @param bool $nGram
      * @return array
@@ -190,10 +242,9 @@ class Bayes implements BayesInterface {
                 if ($nGram) {
                     $texts = $this->_nGramMethod($text, $nGram);
 
-//                    foreach ($texts as $text) {
-//                        $result[] = $this->_getResult($text, $method, $split, $full_text_mode);
-//                    }
-                    $result[] = $this->_getResult($texts, $method, $split, $full_text_mode);
+                    foreach ($texts as $text) {
+                        $result[] = $this->_getResult($text, $method, $split, $full_text_mode);
+                    }
 
                 }
                 else {
@@ -214,14 +265,14 @@ class Bayes implements BayesInterface {
                     if ($nGram) {
                         $texts = $this->_nGramMethod($sentence, $nGram);
 
-//                        foreach ($texts as $text) {
-////                            $queryText[] = sprintf('"%s"', $text);
+                        foreach ($texts as $text) {
+                            $queryText[] = sprintf('"%s"', $text);
 //                            $result[] = $this->_getResult($text, $method, $split, $full_text_mode);
-//                        }
+                        }
 
-//                        $query = implode(' ', $queryText);
+                        $query = implode(' ', $queryText);
 //                        dd($query);
-                        $result[] = $this->_getResult($texts, $method, $split, $full_text_mode);
+                        $result[] = $this->_getResult($query, $method, $split, $full_text_mode);
 
                     }
                     else {
@@ -230,7 +281,8 @@ class Bayes implements BayesInterface {
                 }
                 break;
             case 'word':
-                $words = preg_split('/\W+/', strtolower($text), -1, PREG_SPLIT_NO_EMPTY);
+                $re = '/\W+/';
+                $words = preg_split($re, strtolower($text), -1, PREG_SPLIT_NO_EMPTY);
 
                 foreach ($words as $word) {
                     $result[] = $this->_getResult($word, $method, $split, $full_text_mode);
@@ -242,92 +294,8 @@ class Bayes implements BayesInterface {
     }
 
     /**
-     * @param $text
-     * @param $nGram
-     * @return array|mixed
-     */
-    private function _nGramMethod($text, $nGram)
-    {
-        $sanitized = preg_replace('/[[:punct:]]/', '', $text);
-
-//        dd($sanitized);
-        $words = preg_split('/\W+/', strtolower($sanitized), -1, PREG_SPLIT_NO_EMPTY);
-        $wordCount = count($words);
-//        $words = str_word_count($text, 1);
-//        $wordCount = str_word_count($text);
-
-//        dd($words, $wordCount);
-
-        $nGrams = Config::get('bayes.n-grams');
-
-        // starts with a number like 1-gram
-        if (preg_match('/^\d/', $nGram) === 1) {
-            $nGramMethodKeyString = $nGram;
-        } else {
-            $nGramMethodKey = array_keys($nGrams, $nGram);
-            $nGramMethodKeyString = current($nGramMethodKey);
-        }
-        $n = (int)strstr($nGramMethodKeyString, '-', true);
-
-        $result = [];
-
-        if ($wordCount > ($n - 1) && $n > 1) {
-            for ($i = 0; $i < ($wordCount - ($n - 1)); $i++) {
-                $tempArray = [];
-                for ($j = $i; $j < ($i + $n); $j++) {
-                    $tempArray[] = $words[$j];
-                }
-                $result[] = implode(' ', $tempArray);
-            }
-        } else {
-            $result = $text;
-        }
-
-        return $result;
-    }
-
-    /**
-     * @param $str
-     * @param $method
-     * @param $split
-     * @param null $full_text_mode
-     * @return array
-     */
-    private function _getResult($str, $method, $split, $full_text_mode = null)
-    {
-        if (is_null($full_text_mode)) {
-            $match = 'match (text) against (?)';
-        } else {
-            $match = 'match (text) against (? ' . $full_text_mode . ')';
-        }
-
-        switch ($method) {
-            case 'exact_match':
-                $data = Review::search($str);
-                break;
-            case 'full_text':
-                if (is_array($str)) {
-                    foreach ($str as $text) {
-                        $queryText[] = sprintf('"%s"', $text);
-                    }
-                    $str = implode(' ', $queryText);
-                }
-//                dd($str);
-                $data = Review::fullTextSearch($match, $str);
-                break;
-        }
-
-        $result = [
-            'method' => $method,
-            'type' => $split,
-            'string' => $str,
-            'data' => $data,
-        ];
-
-        return $result;
-    }
-
-    /**
+     * Check vars.
+     * 
      * @param $text
      * @param $tag
      * @return array
@@ -343,6 +311,8 @@ class Bayes implements BayesInterface {
     }
 
     /**
+     * Check text if empty throw an exception.
+     * 
      * @param $text
      * @return string
      * @throws Exception
@@ -363,6 +333,8 @@ class Bayes implements BayesInterface {
     }
 
     /**
+     * Check tag if empty throw an exception.
+     * 
      * @param $tag
      * @return string
      * @return string
@@ -381,5 +353,104 @@ class Bayes implements BayesInterface {
         }
 
         return $tag;
+    }
+
+    /**
+     * Select full-text mode and return result.
+     * 
+     * @param $str
+     * @param $method
+     * @param $split
+     * @param null $full_text_mode
+     * @return array
+     */
+    private function _getResult($str, $method, $split, $full_text_mode = null)
+    {
+        if (is_null($full_text_mode)) {
+            $match = 'match (text) against (?)';
+        } else {
+            $match = 'match (text) against (? ' . $full_text_mode . ')';
+        }
+
+        switch ($method) {
+            case 'exact_match':
+                $data = Review::search($str);
+                break;
+            case 'full_text':
+                $data = Review::fullTextSearch($match, $str);
+                break;
+        }
+
+        $result = [
+            'method' => $method,
+            'type' => $split,
+            'string' => $str,
+            'data' => $data,
+        ];
+
+        return $result;
+    }
+
+    /**
+     * An N-gram is an N-character slice of a longer string. Although in the literature the term can include 
+     * the notion of any co-occurring set of characters in a string (e.g., an N-gram made up of the first and 
+     * third character of a word), in this paper we use the term for contiguous slices only.
+     *
+     * Typically, one slices the string into a set of overlapping N-grams. In our system, we use N-grams of 
+     * several different lengths simultaneously. We also append blanks to the beginning and ending of the string 
+     * in order to help with matching beginning-of-word and ending-of-word situations. (We will use the underscore 
+     * character (“_”) to represent blanks.) Thus, the word “TEXT” would be composed of the following N-grams:
+     *
+     *  - bi-grams: _T, TE, EX, XT, T_ 
+     *  - tri-grams: _TE, TEX, EXT, XT_, T_ _ 
+     *  - quad-grams: _TEX, TEXT, EXT_, XT_ _, T_ _ _ 
+     *  
+     * In general, a string of length k, padded with blanks, will have k+1 bi-grams, k+1tri-grams, k+1 quad-grams, 
+     * and so on.
+     * 
+     * @param $text
+     * @param $nGram
+     * @return array|mixed
+     */
+    private function _nGramMethod($text, $nGram)
+    {
+//        $re = '/\W+/';
+//        $words = preg_split($re, strtolower($text), -1, PREG_SPLIT_NO_EMPTY);
+        $words = str_word_count($text, 1);
+        $wordCount = str_word_count($text);
+
+        $nGrams = Config::get('bayes.n-grams');
+
+        // starts with a number like 1-gram
+        if (preg_match('/^\d/', $nGram) === 1) {
+            $nGramMethodKeyString = $nGram;
+        } else {
+            $nGramMethodKey = array_keys($nGrams, $nGram);
+            $nGramMethodKeyString = current($nGramMethodKey);
+        }
+        $n = (int)strstr($nGramMethodKeyString, '-', true);
+
+        $result = [];
+
+        if ($wordCount > $n && $n > 1) {
+            $i = 0;
+            while ($i <= ($wordCount - $n)) {
+                $j = $i;
+                $tempArray = [];
+                while ($j < ($n + $i)) {
+                    $tempArray[] = $words[$j];
+
+                    $j++;
+                }
+
+                $result[] = implode(' ', $tempArray);
+
+                $i++;
+            };
+        } else {
+            $result = $words;
+        }
+
+        return $result;
     }
 }
